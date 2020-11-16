@@ -1,4 +1,4 @@
-import {response, Router} from "express";
+import {Router} from "express";
 import db from "../../bin/dbConfig";
 import postSchema from "../../models/post.model";
 import mongoose from 'mongoose';
@@ -26,7 +26,7 @@ homePageRouter.get('/all-categories', async (req, res) => {
 
     categoriesModel.find({}, (err, result: CategoriesInterface) => {
         connection.disconnect();
-        if (err) return response.status(400).json(err);
+        if (err) return res.status(400).json(err);
 
         return res.status(200).json(result);
     })
