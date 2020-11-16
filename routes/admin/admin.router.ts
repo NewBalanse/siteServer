@@ -35,7 +35,6 @@ adminRouter.get('/', (async (req, res) => {
 
 adminRouter.post('/create', urlUnencodedParser, (async (req, res) => {
     try {
-        console.log(req.body);
         if (!handleRequestAuthorizationHeader(req, 'Basic')) return res.sendStatus(400);
         if (!req.body.username) return res.sendStatus(400);
         const credentials = getCredentials(req);

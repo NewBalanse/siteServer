@@ -32,7 +32,7 @@ homePageRouter.get('/all-categories', async (req, res) => {
     })
 })
 
-homePageRouter.get('post-by-category/:id', async (req, res) => {
+homePageRouter.get('/post-by-category/:id', async (req, res) => {
     const connections = await db();
     const postModel = mongoose.model('post', postSchema);
 
