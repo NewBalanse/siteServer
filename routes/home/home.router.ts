@@ -1,8 +1,10 @@
-import {Router} from "express";
+import {response, Router} from "express";
 import db from "../../bin/dbConfig";
 import postSchema from "../../models/post.model";
 import mongoose from 'mongoose';
 import {PostInterface} from "../../interfaces/post.interface";
+import categoriesSchema from "../../models/categories.model";
+import {CategoriesInterface} from "../../interfaces/categories.interface";
 
 const homePageRouter = Router();
 
@@ -15,6 +17,18 @@ homePageRouter.get('/', async (request, response) => {
         if (err) return response.status(400).json(err);
 
         return response.status(200).json(result);
+    })
+})
+
+homePageRouter.get('/all-categories', async (req, res) => {
+    const connection = await db();
+    const categoriesModel = mongoose.model('category', categoriesSchema);
+
+    categoriesModel.find({}, (err, result: CategoriesInterface) => {
+        connection.disconnect();
+        if (err) return response.status(400).json(err);
+
+        return res.status(200).json(result);
     })
 })
 

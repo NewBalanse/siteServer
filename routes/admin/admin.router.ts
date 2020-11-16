@@ -8,6 +8,7 @@ import {AdminInterface} from "../../interfaces/admin.interface";
 import generationToken from "./bin/generate.token";
 import postSchema from "../../models/post.model";
 import {PostInterface} from "../../interfaces/post.interface";
+import categoriesSchema from "../../models/categories.model";
 
 const urlUnencodedParser = bodyParser.urlencoded({extended: true});
 
@@ -97,6 +98,76 @@ adminRouter.get('/login', urlUnencodedParser, (async (req, res) => {
     }
 }));
 
+adminRouter.post('/create-category', urlUnencodedParser, (async (req, res) => {
+    try {
+        if (!handleRequestAuthorizationHeader(req, 'Bearer')) return res.status(400).json('Authorization error');
+        const token: string = req.headers.authorization.split(' ')[1].trim();
+        const connection = await db();
+
+        const adminModel = mongoose.model('admin', adminSchema);
+        const categoryModel = mongoose.model('category', categoriesSchema);
+
+        adminModel.findOne({token}, (err, result: AdminInterface) => {
+            if (err || !result) return res.status(400).json(err);
+
+            const {name} = req.body;
+
+            const category = new categoryModel({
+                name
+            });
+
+            category.save((errSave) => {
+                if (errSave) return res.status(400).json(errSave);
+
+                result.categories.push(category);
+                adminModel.findByIdAndUpdate(result._id, result, {}, (errUpdate, resultUpdate) => {
+                    connection.disconnect();
+                    if (errUpdate) {
+                        category.remove({_id: category._id}, (errRemove, resultRemove) => {
+                            if (errRemove) return res.status(400).json(errRemove);
+
+                            return res.status(400).json(errUpdate);
+                        })
+                    }
+
+                    return res.status(200).json(result);
+                })
+            })
+        });
+    } catch (e) {
+        return res.status(400).json(e);
+    }
+}));
+
+adminRouter.delete('/delete-category/:id', async (req, res) => {
+    try {
+        if (!handleRequestAuthorizationHeader(req, 'Bearer')) return res.status(400).json('Authorization error');
+        const token: string = req.headers.authorization.split(' ')[1].trim();
+
+        const connections = await db();
+        const adminModel = mongoose.model('admin', adminSchema);
+        const categoryModel = mongoose.model('category', categoriesSchema);
+
+        categoryModel.findOneAndDelete({_id: req.params.id}, (deleteError, deleteResult) => {
+            if (deleteError) return res.status(400).json(deleteError);
+
+            adminModel.findOne({token}, (findAdminError, findAdminResult: AdminInterface) => {
+                if (findAdminError || !findAdminResult) return res.status(400).json(findAdminError);
+
+                findAdminResult.categories = findAdminResult.categories.filter(x => x._id.toString() !== req.params.id.toString());
+                adminModel.updateOne({token}, findAdminResult, (updateError, updateResult) => {
+                    connections.disconnect();
+                    if (updateError) return res.status(400).json(updateError);
+
+                    return res.status(200).json(findAdminResult);
+                })
+            })
+        })
+    } catch (e) {
+        return res.status(400).json(e);
+    }
+})
+
 adminRouter.post('/create-post', urlUnencodedParser, (async (req, res) => {
     try {
         if (!handleRequestAuthorizationHeader(req, 'Bearer')) return res.status(400).json('create post error');
@@ -109,12 +180,13 @@ adminRouter.post('/create-post', urlUnencodedParser, (async (req, res) => {
         adminModel.findOne({token}, (err, result: AdminInterface) => {
             if (err || !result) return res.status(400).json(err);
 
-            const {name, postText} = req.body;
+            const {name, postText, categoryId} = req.body;
 
             const post = new postModel({
                 name,
                 postText,
-                description: (postText as string).substr(0, 120)
+                description: (postText as string).substr(0, 120),
+                categoryId
             });
 
             post.save((errSave) => {
@@ -131,7 +203,7 @@ adminRouter.post('/create-post', urlUnencodedParser, (async (req, res) => {
                         })
                     }
 
-                    res.status(200).json(result);
+                    return res.status(200).json(result);
                 })
             })
         })

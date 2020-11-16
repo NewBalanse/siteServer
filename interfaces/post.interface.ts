@@ -6,4 +6,5 @@ export interface PostInterface extends Document {
     images: any[];
     descriptions: string;
     _id: string;
+    categoryId: string;
 }

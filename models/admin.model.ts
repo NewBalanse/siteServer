@@ -7,6 +7,7 @@ const adminSchema: Schema = new Schema({
     password: String,
     salt: String,
     posts: [],
+    categories: [],
     token: String
 });
 
