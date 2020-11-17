@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import {PostInterface} from "../../interfaces/post.interface";
 import categoriesSchema from "../../models/categories.model";
 import {CategoriesInterface} from "../../interfaces/categories.interface";
+import path from "path";
+import fs from 'fs';
 
 const homePageRouter = Router();
 
@@ -42,6 +44,21 @@ homePageRouter.get('/post-by-category/:id', async (req, res) => {
 
         return res.status(200).json(result);
     })
+})
+
+homePageRouter.get('/:filename', (req, res) => {
+    try {
+        return res.sendFile(path.resolve('assets/' + req.params.filename));
+        // get binary file;
+        /*fs.readFile('assets/' + req.params.filename, {encoding: "binary"}, (err, result) => {
+            if (err) return res.status(400).json('error ' + err);
+
+            res.writeHead(200, {'Content-Type': 'image/!*'});
+            return res.end(result);
+        });*/
+    } catch (e) {
+        return res.status(400).json(e);
+    }
 })
 
 export default homePageRouter;

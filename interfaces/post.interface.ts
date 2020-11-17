@@ -7,4 +7,5 @@ export interface PostInterface extends Document {
     descriptions: string;
     _id: string;
     categoryId: string;
+    logo: string;
 }

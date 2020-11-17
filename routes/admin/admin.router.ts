@@ -9,10 +9,62 @@ import generationToken from "./bin/generate.token";
 import postSchema from "../../models/post.model";
 import {PostInterface} from "../../interfaces/post.interface";
 import categoriesSchema from "../../models/categories.model";
+import multer from 'multer';
+import path from "path";
+import fs from 'fs';
 
 const urlUnencodedParser = bodyParser.urlencoded({extended: true});
+const uploadDir = 'assets'
+const FILENAME = 'image';
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir)
+    },
+    filename: (req, file, cb) => {
+        const writeFileName: string = Date.now() + Math.ceil(Math.random() * 1000) + path.extname(file.originalname)
+        cb(null, writeFileName);
+    }
+});
+const upload = () => {
+    return multer({
+        storage
+    }).single(FILENAME)
+}
 
 const adminRouter = Router();
+
+
+const handleRequestAuthorizationHeader = (req, headerName: string): boolean => {
+    return req.headers.authorization && req.headers.authorization.indexOf(`${headerName} `) !== -1;
+}
+
+const getCredentials = (req): { username: string, password: string } => {
+    const basicToken: string = req.headers.authorization.split(' ')[1];
+    const credentials = Buffer.from(basicToken, 'base64').toString('ascii');
+    const [username, password] = credentials.split(':');
+    return {username, password};
+}
+
+const uploadImages = (base64Data: string) => {
+    const uploadsPath = '/assets/';
+    console.log(base64Data);
+    const ext = base64Data.substring(base64Data.indexOf('/') + 1, base64Data.indexOf(';base64'));
+    const fileType = base64Data.substring("data:".length, base64Data.indexOf('/'));
+    const regExp = new RegExp(`^data:${fileType}\/${ext};base64,`, 'gi')
+    const baseImage = base64Data.replace(regExp, "");
+    const rand = Math.ceil(Math.random() * 1000);
+    console.log(ext, fileType, regExp, baseImage, rand);
+
+    const fileName = `photo_${Date.now()}_${rand}.${ext}`;
+    console.log(fileName);
+    if (!fs.existsSync(uploadsPath)) {
+        console.log('!existsSync()');
+        fs.mkdirSync(uploadsPath);
+    }
+    fs.writeFileSync(uploadsPath + fileName, baseImage, 'base64');
+    return {fileName, uploadsPath};
+}
+
 
 adminRouter.get('/', (async (req, res) => {
     try {
@@ -109,10 +161,11 @@ adminRouter.post('/create-category', urlUnencodedParser, (async (req, res) => {
         adminModel.findOne({token}, (err, result: AdminInterface) => {
             if (err || !result) return res.status(400).json(err);
 
-            const {name} = req.body;
+            const {name, logo} = req.body;
 
             const category = new categoryModel({
-                name
+                name,
+                logo
             });
 
             category.save((errSave) => {
@@ -179,13 +232,14 @@ adminRouter.post('/create-post', urlUnencodedParser, (async (req, res) => {
         adminModel.findOne({token}, (err, result: AdminInterface) => {
             if (err || !result) return res.status(400).json(err);
 
-            const {name, postText, categoryId} = req.body;
+            const {name, postText, categoryId, logo} = req.body;
 
             const post = new postModel({
                 name,
                 postText,
                 description: (postText as string).substr(0, 120),
-                categoryId
+                categoryId,
+                logo
             });
 
             post.save((errSave) => {
@@ -210,6 +264,25 @@ adminRouter.post('/create-post', urlUnencodedParser, (async (req, res) => {
         return res.status(400).json(e);
     }
 }));
+
+adminRouter.post('/post/upload-photo/', upload(), async (req, res, next) => {
+    try {
+        if (!handleRequestAuthorizationHeader(req, 'Bearer')) return res.status(400).json('Unauthorized');
+
+        /*const connections = await db();
+        const adminModel = mongoose.model('admin', adminSchema);
+        const postModel = mongoose.model('post', postSchema);*/
+        // const resultUpload = uploadImages((req as any).file);
+        const file = (req as any).file;
+        return res.status(200).json({
+            name: file.filename,
+            path: 'assets/' + file.path
+        });
+
+    } catch (e) {
+        return res.status(400).json(e);
+    }
+})
 
 adminRouter.put('/edit-post/:id', urlUnencodedParser, (async (req, res) => {
     try {
@@ -307,16 +380,5 @@ adminRouter.delete('/delete-posts', urlUnencodedParser, (async (req, res) => {
         return res.status(400).json(e);
     }
 }))
-
-const handleRequestAuthorizationHeader = (req, headerName: string): boolean => {
-    return req.headers.authorization && req.headers.authorization.indexOf(`${headerName} `) !== -1;
-}
-
-const getCredentials = (req): { username: string, password: string } => {
-    const basicToken: string = req.headers.authorization.split(' ')[1];
-    const credentials = Buffer.from(basicToken, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
-    return {username, password};
-}
 
 export default adminRouter;
