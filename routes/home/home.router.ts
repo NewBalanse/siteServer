@@ -48,9 +48,9 @@ homePageRouter.get('/post-by-category/:id', async (req, res) => {
 
 homePageRouter.get('/:filename', (req, res) => {
     try {
-        return res.sendFile(path.resolve('assets/' + req.params.filename));
+        return res.sendFile(path.resolve('uploads/' + req.params.filename));
         // get binary file;
-        /*fs.readFile('assets/' + req.params.filename, {encoding: "binary"}, (err, result) => {
+        /*fs.readFile('uploads/' + req.params.filename, {encoding: "binary"}, (err, result) => {
             if (err) return res.status(400).json('error ' + err);
 
             res.writeHead(200, {'Content-Type': 'image/!*'});

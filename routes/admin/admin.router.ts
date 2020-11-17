@@ -11,10 +11,9 @@ import {PostInterface} from "../../interfaces/post.interface";
 import categoriesSchema from "../../models/categories.model";
 import multer from 'multer';
 import path from "path";
-import fs from 'fs';
 
 const urlUnencodedParser = bodyParser.urlencoded({extended: true});
-const uploadDir = 'assets'
+const uploadDir = 'uploads'
 const FILENAME = 'image';
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -43,26 +42,6 @@ const getCredentials = (req): { username: string, password: string } => {
     const credentials = Buffer.from(basicToken, 'base64').toString('ascii');
     const [username, password] = credentials.split(':');
     return {username, password};
-}
-
-const uploadImages = (base64Data: string) => {
-    const uploadsPath = '/assets/';
-    console.log(base64Data);
-    const ext = base64Data.substring(base64Data.indexOf('/') + 1, base64Data.indexOf(';base64'));
-    const fileType = base64Data.substring("data:".length, base64Data.indexOf('/'));
-    const regExp = new RegExp(`^data:${fileType}\/${ext};base64,`, 'gi')
-    const baseImage = base64Data.replace(regExp, "");
-    const rand = Math.ceil(Math.random() * 1000);
-    console.log(ext, fileType, regExp, baseImage, rand);
-
-    const fileName = `photo_${Date.now()}_${rand}.${ext}`;
-    console.log(fileName);
-    if (!fs.existsSync(uploadsPath)) {
-        console.log('!existsSync()');
-        fs.mkdirSync(uploadsPath);
-    }
-    fs.writeFileSync(uploadsPath + fileName, baseImage, 'base64');
-    return {fileName, uploadsPath};
 }
 
 
